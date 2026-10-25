@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="IRIS — save your cloud storage bills.">
+  <title>IRIS — Save your cloud storage bills</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/globe.js" defer></script>
+  <script src="js/site.js" defer></script>
+  <script src="js/clerk-auth.js" defer></script>
+</head>
+<body class="login-page">
+  <main class="login-layout">
+    <section class="login-brand-panel" aria-label="IRIS introduction">
+      <a class="brand login-brand" href="index.html" aria-label="IRIS home">
+        <span class="brand-i">ı</span><span>r</span><span class="brand-i">ı</span><span>s</span>
+      </a>
+
+      <h1>save your cloud<br>storage bills<span class="green-dot">.</span></h1>
+    </section>
+
+    <section class="login-action-panel" aria-label="Account options">
+      <div class="globe-stage" aria-label="Rotating ASCII globe">
+        <canvas id="globe-canvas" role="img" aria-label="A monochrome globe formed from ASCII characters, rotating clockwise"></canvas>
+        <span class="globe-orbit orbit-one" aria-hidden="true"><i></i></span>
+        <span class="globe-orbit orbit-two" aria-hidden="true"><i></i></span>
+      </div>
+
+      <div class="auth-actions">
+        <button class="button button-green auth-open" data-auth-mode="login" type="button">Log in</button>
+        <button class="button button-outline auth-open" data-auth-mode="signup" type="button">Sign up</button>
+      </div>
+
+      <p class="trust-line"><span>Secure</span><i>•</i><span>Private</span><i>•</i><span>Yours</span></p>
+      <a class="continue-link" href="index.html">Continue to compressor <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-title">
+    <button class="dialog-close" id="auth-close" type="button" aria-label="Close dialog">×</button>
+    <p class="eyebrow">WELCOME TO IRIS</p>
+    <h2 id="auth-title">Log in</h2>
+    <p class="dialog-description">Account access is a visual prototype and isn't connected to an authentication service yet.</p>
+
+    <form id="auth-form">
+      <label for="auth-email">Email</label>
+      <input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+
+      <label for="auth-password">Password</label>
+      <input id="auth-password" name="password" type="password" placeholder="Enter a password" autocomplete="current-password" minlength="8" required>
+
+      <button class="button button-green auth-submit" type="submit">Continue</button>
+    </form>
+
+    <p class="auth-notice" id="auth-notice" role="status" hidden></p>
+    <button class="text-button dialog-mode-toggle" id="auth-mode-toggle" type="button">Don't have an account? Sign up</button>
+  </dialog>
+</body>
+</html>

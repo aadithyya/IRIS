@@ -1,0 +1,34 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+bin/
+*.log
+*.test
+coverage.out
+*.pem
+*.key
+
+# Local AI-agent tool directories
+/.agents/
+/.aider-desk/
+/.minimax/
+/.moxby/
+/.neovate/
+/.ona/
+/.qoder/
+/.qwen/
+/.reasonix/
+/.roo/
+/.rovodev/
+/.terramind/
+/.trae/
+/.vibe/
+/.zcode/
+/.zencoder/
+
+# Machine-specific launch configuration
+/com.iris.compressor.plist
+
+# Local skill tooling
+/skills-lock.json

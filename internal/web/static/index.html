@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="IRIS — simple, lossless file compression.">
+  <title>IRIS — Lossless File Compression</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/site.js" defer></script>
+  <script src="js/clerk-auth.js" defer></script>
+</head>
+<body class="page-home">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="IRIS home">
+      <span class="brand-i">ı</span><span>r</span><span class="brand-i">ı</span><span>s</span>
+    </a>
+
+    <button class="nav-toggle" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+
+    <nav class="site-nav" aria-label="Main navigation">
+      <a class="active" aria-current="page" href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="features.html">Features</a>
+      <a href="team.html">Team</a>
+    </nav>
+
+    <span class="header-spacer" aria-hidden="true"></span>
+  </header>
+
+  <main class="home-main">
+    <section class="dropzone" id="dropzone" aria-label="File compression upload area">
+      <input id="file-input" class="visually-hidden" type="file" aria-label="Choose a file">
+
+      <div class="state state-idle" id="state-idle">
+        <svg class="upload-symbol" viewBox="0 0 56 56" aria-hidden="true">
+          <path d="M28 35V9m-9 9 9-9 9 9"/>
+          <path d="M14 29v13a4 4 0 0 0 4 4h20a4 4 0 0 0 4-4V29"/>
+        </svg>
+
+        <h1>Drop your file here</h1>
+        <button class="button button-green" id="choose-file" type="button">Choose file</button>
+        <p class="helper-text">or drag and drop it here · Up to 95 MiB</p>
+      </div>
+
+      <div class="state state-selected" id="state-selected" hidden>
+        <div class="file-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <path d="M8 3.5h10l7 7V28H8z"/>
+            <path d="M18 3.5v7h7M12 17h9M12 21h9"/>
+          </svg>
+        </div>
+
+        <p class="eyebrow">READY TO COMPRESS</p>
+        <h2 id="selected-name" class="selected-name">filename.csv</h2>
+        <p class="state-description" id="selected-size">0 bytes</p>
+
+        <div class="selected-actions">
+          <button class="button button-green" id="compress-button" type="button">Compress file</button>
+          <button class="button button-quiet" id="replace-button" type="button">Choose another</button>
+        </div>
+      </div>
+
+      <div class="state state-progress" id="state-progress" aria-live="polite" hidden>
+        <div class="progress-ring" id="progress-ring" style="--progress: 0deg">
+          <span id="progress-value">0%</span>
+        </div>
+        <h2 id="progress-title">Uploading your file…</h2>
+        <p class="state-description" id="progress-description">Sending your file to IRIS.</p>
+        <button class="text-button" id="cancel-button" type="button">Cancel</button>
+      </div>
+
+      <div class="state state-success" id="state-success" aria-live="polite" hidden>
+        <div class="success-mark" aria-hidden="true">
+          <svg viewBox="0 0 100 100">
+            <circle class="success-circle" cx="50" cy="50" r="42"/>
+            <path class="success-tick" d="M28 51 43 65 72 35"/>
+          </svg>
+        </div>
+        <h2>Compression complete</h2>
+        <p class="state-description">Your compressed file is ready.</p>
+      </div>
+
+      <div class="state state-results" id="state-results" aria-live="polite" hidden>
+        <div class="success-mark success-mark-small" aria-hidden="true">
+          <svg viewBox="0 0 100 100">
+            <circle class="success-circle" cx="50" cy="50" r="42"/>
+            <path class="success-tick" d="M28 51 43 65 72 35"/>
+          </svg>
+        </div>
+
+        <p class="eyebrow">READY TO DOWNLOAD</p>
+        <h2 id="result-name" class="selected-name">filename.csv.zst</h2>
+
+        <div class="size-comparison">
+          <div>
+            <span>Original size</span>
+            <strong id="original-size">—</strong>
+          </div>
+          <div>
+            <span>Compressed size</span>
+            <strong id="compressed-size">—</strong>
+          </div>
+        </div>
+
+        <p class="savings-note" id="savings-note">Compression results</p>
+
+        <button class="button button-green download-button" id="download-button" type="button">
+          Download compressed file <span aria-hidden="true">↓</span>
+        </button>
+        <button class="text-button" id="another-button" type="button">Compress another file</button>
+      </div>
+
+      <div class="state state-error" id="state-error" aria-live="assertive" hidden>
+        <div class="error-mark" aria-hidden="true">!</div>
+        <h2>Something went wrong</h2>
+        <p class="state-description" id="error-message">Compression failed. Please try again.</p>
+        <button class="button button-green" id="retry-button" type="button">Try again</button>
+        <button class="text-button" id="error-replace-button" type="button">Choose another file</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
