@@ -1,16 +1,36 @@
 /**
- * Clerk authentication integration for IRIS.
+ * Clerk authentication for IRIS's plain HTML/CSS/JavaScript frontend.
  *
- * Loads ClerkJS from CDN using a publishable key fetched from /api/clerk-config.
- * Provides: sign-in / sign-up via Clerk modal overlays, auth-state UI in the
- * header (avatar + sign-out), and redirect-to-home after authentication.
- *
- * No secret keys are exposed to the browser.
+ * Loads the official Clerk UI bundle and ClerkJS from the Frontend API.
+ * The Go server exposes only the public publishable key at /api/clerk-config.
+ * A missing key leaves the login-page prototype in place; no credentials are
+ * submitted to IRIS or stored by the prototype.
  */
 (() => {
   "use strict";
 
-  // ── Helpers ──────────────────────────────────────────────────────────
+  const HOME_URL = "/index.html";
+  const LOGIN_URL = "/login.html";
+  const SIGNUP_URL = "/signup.html";
+
+  const appearance = {
+    variables: {
+      colorPrimary: "#25E069",
+      colorText: "#171b18",
+      colorBackground: "#ffffff",
+      borderRadius: "10px"
+    },
+    elements: {
+      cardBox: {
+        boxShadow: "none",
+        border: "1px solid #e4e9e5"
+      },
+      formButtonPrimary: {
+        backgroundColor: "#25E069",
+        color: "#07140b"
+      }
+    }
+  };
 
   function initials(user) {
     const first = (user.firstName || "").charAt(0);
@@ -18,227 +38,384 @@
     return (first + last).toUpperCase() || "?";
   }
 
-  function displayName(user) {
-    const parts = [user.firstName, user.lastName].filter(Boolean);
-    return parts.join(" ") || primaryEmail(user) || "User";
-  }
-
   function primaryEmail(user) {
-    if (!user.emailAddresses || !user.emailAddresses.length) return "";
+    const emails = user.emailAddresses || [];
+    if (!emails.length) return "";
+
     if (user.primaryEmailAddressId) {
-      const match = user.emailAddresses.find(
-        (e) => e.id === user.primaryEmailAddressId
+      const primary = emails.find(
+        (email) => email.id === user.primaryEmailAddressId
       );
-      if (match) return match.emailAddress;
+      if (primary) return primary.emailAddress || "";
     }
-    return user.emailAddresses[0].emailAddress || "";
+
+    return emails[0].emailAddress || "";
   }
 
-  // ── Fetch publishable key from Go backend ───────────────────────────
+  function displayName(user) {
+    const name = [user.firstName, user.lastName].filter(Boolean).join(" ");
+    return name || primaryEmail(user) || "User";
+  }
+
+  function element(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function appendAvatarContents(target, user) {
+    const imageURL = user.imageUrl;
+
+    if (imageURL) {
+      try {
+        const parsed = new URL(imageURL);
+        if (parsed.protocol === "https:") {
+          const image = document.createElement("img");
+          image.src = parsed.href;
+          image.alt = "";
+          image.loading = "lazy";
+          target.appendChild(image);
+          return;
+        }
+      } catch {
+        // Use initials if the profile image URL is invalid.
+      }
+    }
+
+    target.appendChild(element("span", "", initials(user)));
+  }
 
   async function fetchPublishableKey() {
-    try {
-      const res = await fetch("/api/clerk-config");
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.publishableKey || null;
-    } catch {
-      return null;
+    const response = await fetch("/api/clerk-config", {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+
+    // A 204 response intentionally means Clerk is not configured.
+    if (response.status === 204) return null;
+    if (!response.ok) {
+      throw new Error("Could not fetch the Clerk configuration.");
     }
+
+    const config = await response.json();
+    return typeof config.publishableKey === "string"
+      ? config.publishableKey.trim()
+      : null;
   }
 
-  // ── Load ClerkJS from CDN ───────────────────────────────────────────
+  function frontendDomainFromKey(publishableKey) {
+    const match = publishableKey.match(/^pk_(?:test|live)_([A-Za-z0-9_+/=-]+)$/);
+    if (!match) throw new Error("The Clerk publishable key has an invalid format.");
 
-  function loadClerkScript(publishableKey) {
+    const encodedDomain = match[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const frontendDomain = atob(encodedDomain).replace(/\$$/, "");
+
+    if (!/^[a-z0-9.-]+$/i.test(frontendDomain)) {
+      throw new Error("The Clerk Frontend API domain is invalid.");
+    }
+
+    return frontendDomain;
+  }
+
+  function loadScript(src, attributes = {}) {
     return new Promise((resolve, reject) => {
-      if (window.Clerk) {
-        resolve(window.Clerk);
-        return;
-      }
-
-      // Extract the frontend API domain from the publishable key.
-      // Clerk publishable keys encode the frontend-api domain in base64
-      // after the "pk_test_" or "pk_live_" prefix.
-      const keyBody = publishableKey.replace(/^pk_(test|live)_/, "");
-      let frontendApi;
-      try {
-        frontendApi = atob(keyBody).replace(/\$$/, "");
-      } catch {
-        // Fallback: let Clerk figure it out from the key.
-        frontendApi = null;
-      }
-
-      const src = frontendApi
-        ? `https://${frontendApi}/npm/@clerk/clerk-js@latest/dist/clerk.browser.js`
-        : "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js";
-
       const script = document.createElement("script");
       script.src = src;
-      script.crossOrigin = "anonymous";
-      script.dataset.clerkPublishableKey = publishableKey;
       script.async = true;
+      script.crossOrigin = "anonymous";
 
-      script.addEventListener("load", () => {
-        if (window.Clerk) resolve(window.Clerk);
-        else reject(new Error("ClerkJS did not expose window.Clerk"));
+      Object.entries(attributes).forEach(([name, value]) => {
+        script.setAttribute(name, value);
       });
 
-      script.addEventListener("error", () =>
-        reject(new Error("Failed to load ClerkJS from CDN"))
+      script.addEventListener("load", resolve, { once: true });
+      script.addEventListener(
+        "error",
+        () => reject(new Error("Failed to load Clerk's browser SDK.")),
+        { once: true }
       );
 
       document.head.appendChild(script);
     });
   }
 
-  // ── Auth-state UI ───────────────────────────────────────────────────
+  async function initializeClerk(publishableKey) {
+    const frontendDomain = frontendDomainFromKey(publishableKey);
 
-  function renderAuthUI(clerk) {
-    const user = clerk.user;
-
-    // Login page: swap buttons when authenticated.
-    const authActions = document.querySelector(".auth-actions");
-    if (authActions) {
-      if (user) {
-        authActions.innerHTML = "";
-
-        const info = document.createElement("div");
-        info.className = "auth-user-info";
-        info.innerHTML = `
-          <div class="auth-user-avatar" title="${displayName(user)}">
-            ${
-              user.imageUrl
-                ? `<img src="${user.imageUrl}" alt="${displayName(user)}" />`
-                : `<span>${initials(user)}</span>`
-            }
-          </div>
-          <p class="auth-user-name">${displayName(user)}</p>
-          <p class="auth-user-email">${primaryEmail(user)}</p>
-        `;
-        authActions.appendChild(info);
-
-        const goBtn = document.createElement("a");
-        goBtn.href = "index.html";
-        goBtn.className = "button button-green";
-        goBtn.style.width = "100%";
-        goBtn.style.textDecoration = "none";
-        goBtn.textContent = "Go to compressor";
-        authActions.appendChild(goBtn);
-
-        const signOutBtn = document.createElement("button");
-        signOutBtn.className = "button button-outline";
-        signOutBtn.style.width = "100%";
-        signOutBtn.textContent = "Sign out";
-        signOutBtn.addEventListener("click", async () => {
-          await clerk.signOut();
-          window.location.reload();
-        });
-        authActions.appendChild(signOutBtn);
-      }
-      // If not authenticated, buttons are already in the HTML.
+    // Clerk's prebuilt UI bundle must load before ClerkJS is initialized.
+    if (!window.__internal_ClerkUICtor) {
+      await loadScript(
+        "https://" + frontendDomain + "/npm/@clerk/ui@1/dist/ui.browser.js"
+      );
     }
 
-    // Header user control on non-login pages.
-    const headerSpacer = document.querySelector(".header-spacer");
-    if (headerSpacer && user) {
-      headerSpacer.style.display = "none";
-
-      const control = document.createElement("div");
-      control.className = "header-user-control";
-
-      const avatar = document.createElement("button");
-      avatar.className = "header-avatar";
-      avatar.type = "button";
-      avatar.title = displayName(user);
-      avatar.setAttribute("aria-label", "User menu");
-      avatar.innerHTML = user.imageUrl
-        ? `<img src="${user.imageUrl}" alt="" />`
-        : `<span>${initials(user)}</span>`;
-
-      const menu = document.createElement("div");
-      menu.className = "header-user-menu";
-      menu.hidden = true;
-      menu.innerHTML = `
-        <p class="user-menu-name">${displayName(user)}</p>
-        <p class="user-menu-email">${primaryEmail(user)}</p>
-        <button class="user-menu-signout" type="button">Sign out</button>
-      `;
-
-      avatar.addEventListener("click", () => {
-        menu.hidden = !menu.hidden;
-      });
-
-      document.addEventListener("click", (e) => {
-        if (!control.contains(e.target)) menu.hidden = true;
-      });
-
-      menu
-        .querySelector(".user-menu-signout")
-        .addEventListener("click", async () => {
-          await clerk.signOut();
-          window.location.reload();
-        });
-
-      control.appendChild(avatar);
-      control.appendChild(menu);
-      headerSpacer.parentNode.replaceChild(control, headerSpacer);
+    if (!window.Clerk) {
+      await loadScript(
+        "https://" + frontendDomain + "/npm/@clerk/clerk-js@6/dist/clerk.browser.js",
+        { "data-clerk-publishable-key": publishableKey }
+      );
     }
+
+    if (!window.Clerk) {
+      throw new Error("ClerkJS loaded without creating the Clerk instance.");
+    }
+
+    if (!window.__internal_ClerkUICtor) {
+      throw new Error("Clerk's prebuilt UI bundle did not initialize.");
+    }
+
+    await window.Clerk.load({
+      ui: { ClerkUI: window.__internal_ClerkUICtor }
+    });
+
+    return window.Clerk;
   }
 
-  // ── Wire login-page buttons ─────────────────────────────────────────
+  function signInOptions() {
+    return {
+      appearance,
+      forceRedirectUrl: HOME_URL,
+      signUpUrl: SIGNUP_URL,
+      signUpForceRedirectUrl: HOME_URL
+    };
+  }
+
+  function signUpOptions() {
+    return {
+      appearance,
+      forceRedirectUrl: HOME_URL,
+      signInUrl: LOGIN_URL + "?auth=signin",
+      signInForceRedirectUrl: HOME_URL
+    };
+  }
 
   function wireLoginButtons(clerk) {
-    document.querySelectorAll("[data-auth-mode]").forEach((button) => {
-      // Remove old event listeners by cloning.
-      const fresh = button.cloneNode(true);
-      button.parentNode.replaceChild(fresh, button);
+    document.querySelectorAll("[data-auth-mode]").forEach((originalButton) => {
+      // site.js also wires the visual prototype. Replace buttons to avoid
+      // triggering both handlers when Clerk is configured.
+      const button = originalButton.cloneNode(true);
+      originalButton.replaceWith(button);
 
-      fresh.addEventListener("click", () => {
-        const mode = fresh.dataset.authMode || "login";
+      button.addEventListener("click", () => {
+        const mode = button.dataset.authMode || "login";
+
         if (mode === "signup") {
-          clerk.openSignUp({ afterSignUpUrl: "/index.html" });
+          clerk.openSignUp(signUpOptions());
         } else {
-          clerk.openSignIn({ afterSignInUrl: "/index.html" });
+          clerk.openSignIn(signInOptions());
         }
       });
     });
   }
 
-  // ── Initialization ──────────────────────────────────────────────────
+  function makeSignedInActions(clerk, container, user) {
+    const info = element("div", "auth-user-info");
+    const avatar = element("div", "auth-user-avatar");
+    avatar.title = displayName(user);
+    appendAvatarContents(avatar, user);
 
-  async function init() {
-    const publishableKey = await fetchPublishableKey();
+    info.appendChild(avatar);
+    info.appendChild(element("p", "auth-user-name", displayName(user)));
+    info.appendChild(element("p", "auth-user-email", primaryEmail(user)));
 
-    if (!publishableKey) {
-      // Clerk is not configured. Leave the page as-is (visual prototype).
-      console.info(
-        "IRIS: Clerk publishable key not configured. Auth buttons will use the visual prototype."
-      );
-      return;
+    const home = element("a", "button button-green", "Go to compressor");
+    home.href = HOME_URL;
+    home.style.width = "100%";
+    home.style.textDecoration = "none";
+
+    const signOut = element("button", "button button-outline", "Sign out");
+    signOut.type = "button";
+    signOut.style.width = "100%";
+    signOut.addEventListener("click", async () => {
+      signOut.disabled = true;
+      try {
+        await clerk.signOut();
+        window.location.assign(LOGIN_URL);
+      } catch (error) {
+        console.error("IRIS: Sign out failed:", error);
+        signOut.disabled = false;
+      }
+    });
+
+    container.replaceChildren(info, home, signOut);
+  }
+
+  function makeHeaderControl(clerk, user) {
+    if (!user) {
+      const actions = element("div", "header-auth-actions");
+
+      const login = element("a", "header-auth-link", "Log in");
+      login.href = LOGIN_URL;
+
+      const signup = element("a", "header-auth-link header-auth-signup", "Sign up");
+      signup.href = SIGNUP_URL;
+
+      actions.append(login, signup);
+      return actions;
     }
 
-    // Remove the old auth dialog so it doesn't conflict with Clerk modals.
-    const oldDialog = document.getElementById("auth-dialog");
-    if (oldDialog) oldDialog.remove();
+    const control = element("div", "header-user-control");
+    const avatar = element("button", "header-avatar");
+    avatar.type = "button";
+    avatar.title = displayName(user);
+    avatar.setAttribute("aria-label", "Open account menu");
+    avatar.setAttribute("aria-expanded", "false");
+    appendAvatarContents(avatar, user);
+
+    const menu = element("div", "header-user-menu");
+    menu.hidden = true;
+    menu.appendChild(element("p", "user-menu-name", displayName(user)));
+    menu.appendChild(element("p", "user-menu-email", primaryEmail(user)));
+
+    const signOut = element("button", "user-menu-signout", "Sign out");
+    signOut.type = "button";
+    signOut.addEventListener("click", async () => {
+      signOut.disabled = true;
+      try {
+        await clerk.signOut();
+        window.location.assign(LOGIN_URL);
+      } catch (error) {
+        console.error("IRIS: Sign out failed:", error);
+        signOut.disabled = false;
+      }
+    });
+
+    menu.appendChild(signOut);
+
+    avatar.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      avatar.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+
+    control.append(avatar, menu);
+    return control;
+  }
+
+  function renderHeaderControl(clerk, user) {
+    const existing = document.querySelector(
+      ".header-auth-actions, .header-user-control"
+    );
+    const spacer = document.querySelector(".header-spacer");
+
+    if (!existing && !spacer) return;
+
+    const next = makeHeaderControl(clerk, user);
+    if (existing) existing.replaceWith(next);
+    else spacer.replaceWith(next);
+  }
+
+  function renderAuthUI(clerk) {
+    const user = clerk.user;
+    const actions = document.querySelector(".auth-actions");
+
+    if (actions) {
+      if (user) {
+        makeSignedInActions(clerk, actions, user);
+      } else if (!actions.querySelector("[data-auth-mode]")) {
+        const login = element("button", "button button-green auth-open", "Log in");
+        login.type = "button";
+        login.dataset.authMode = "login";
+
+        const signup = element("button", "button button-outline auth-open", "Sign up");
+        signup.type = "button";
+        signup.dataset.authMode = "signup";
+
+        actions.replaceChildren(login, signup);
+        wireLoginButtons(clerk);
+      }
+    }
+
+    renderHeaderControl(clerk, user);
+  }
+
+  function showAuthError(message) {
+    const error = document.getElementById("auth-error");
+    if (!error) return;
+
+    error.textContent = message;
+    error.hidden = false;
+  }
+
+  async function init() {
+    const formMount = document.getElementById("clerk-form");
 
     try {
-      const clerk = await loadClerkScript(publishableKey);
-      await clerk.load();
+      const publishableKey = await fetchPublishableKey();
+
+      if (!publishableKey) {
+        console.info(
+          "IRIS: Clerk is not configured. Set CLERK_PUBLISHABLE_KEY on the Go server."
+        );
+
+        if (formMount) {
+          showAuthError(
+            "Authentication is not configured yet. Set CLERK_PUBLISHABLE_KEY on the Go server."
+          );
+        }
+
+        // Keep the login-page visual prototype available, but never pretend
+        // that prototype submissions create real accounts.
+        renderHeaderControl(null, null);
+        return;
+      }
+
+      const clerk = await initializeClerk(publishableKey);
+
+      // Remove the old prototype dialog only after real Clerk has loaded.
+      const oldDialog = document.getElementById("auth-dialog");
+      if (oldDialog) oldDialog.remove();
 
       wireLoginButtons(clerk);
       renderAuthUI(clerk);
 
-      // Listen for session changes.
-      clerk.addListener(({ user: updatedUser }) => {
-        if (updatedUser) renderAuthUI(clerk);
+      clerk.addListener(() => renderAuthUI(clerk));
+
+      if (formMount) {
+        if (clerk.isSignedIn) {
+          window.location.replace(HOME_URL);
+          return;
+        }
+
+        clerk.mountSignUp(formMount, {
+          ...signUpOptions(),
+          routing: "hash"
+        });
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("auth") === "signin") {
+          // This query parameter lets the sign-up form's "Log in" link
+          // return to the existing split-screen login page and open the modal.
+          window.history.replaceState({}, "", window.location.pathname);
+          clerk.openSignIn(signInOptions());
+        }
+      }
+
+      document.addEventListener("click", (event) => {
+        document.querySelectorAll(".header-user-menu").forEach((menu) => {
+          const control = menu.parentElement;
+          if (control && !control.contains(event.target)) {
+            menu.hidden = true;
+            const avatar = control.querySelector(".header-avatar");
+            if (avatar) avatar.setAttribute("aria-expanded", "false");
+          }
+        });
       });
-    } catch (err) {
-      console.error("IRIS: Clerk initialization failed:", err);
+    } catch (error) {
+      console.error("IRIS: Clerk initialization failed:", error);
+
+      if (formMount) {
+        showAuthError(
+          "Could not load Clerk. Check your publishable key and browser connection, then try again."
+        );
+      }
     }
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
     init();
   }
