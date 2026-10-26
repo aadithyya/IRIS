@@ -317,6 +317,22 @@
             "Authentication is not configured yet. Set CLERK_PUBLISHABLE_KEY on the Go server."
           );
         }
+
+        // Keep navigation usable while Clerk is not configured.
+        const spacer = document.querySelector(".header-spacer");
+        if (spacer) {
+          const actions = element("div", "header-auth-actions");
+          const login = element("a", "header-auth-link", "Log in");
+          login.href = LOGIN_URL;
+          const signup = element(
+            "a",
+            "header-auth-link header-auth-signup",
+            "Sign up"
+          );
+          signup.href = SIGNUP_URL;
+          actions.append(login, signup);
+          spacer.replaceWith(actions);
+        }
         return;
       }
 
