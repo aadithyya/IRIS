@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Create your IRIS account.">
+  <title>Sign up — IRIS</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/globe.js" defer></script>
+  <script src="js/site.js" defer></script>
+  <script src="js/clerk-auth.js" defer></script>
+</head>
+<body class="login-page" data-auth-mode="signup">
+  <main class="login-layout">
+    <section class="login-brand-panel" aria-label="IRIS introduction">
+      <a class="brand login-brand" href="index.html" aria-label="IRIS home">
+        <span class="brand-i">ı</span><span>r</span><span>ı</span><span>s</span>
+      </a>
+      <h1>storage that<br>works smarter<span class="green-dot">.</span></h1>
+    </section>
+
+    <section class="login-action-panel" aria-label="Create an IRIS account">
+      <div class="globe-stage" aria-label="Rotating ASCII globe">
+        <canvas id="globe-canvas" role="img" aria-label="A monochrome globe formed from ASCII characters, rotating clockwise"></canvas>
+        <span class="globe-orbit orbit-one" aria-hidden="true"><i></i></span>
+        <span class="globe-orbit orbit-two" aria-hidden="true"><i></i></span>
+      </div>
+
+      <div class="clerk-auth-wrap">
+        <div id="clerk-form"></div>
+        <p id="auth-error" class="auth-page-error" role="alert" hidden></p>
+      </div>
+
+      <p class="trust-line"><span>Secure</span><i>•</i><span>Private</span><i>•</i><span>Yours</span></p>
+      <a class="continue-link" href="index.html">Continue to compressor <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+</body>
+</html>
