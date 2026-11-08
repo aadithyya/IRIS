@@ -1203,3 +1203,185 @@ input:focus-visible {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Clerk auth pages and account controls */
+.clerk-auth-wrap {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 440px);
+  min-width: 0;
+}
+
+#clerk-form {
+  width: 100%;
+  min-width: 0;
+}
+
+.auth-page-error {
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #f1d3ce;
+  border-radius: 10px;
+  background: #fff7f5;
+  color: #8c3024;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.auth-page-error[hidden] {
+  display: none;
+}
+
+.header-auth-actions {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+}
+
+.header-auth-link {
+  color: #252b26;
+  font-size: 14px;
+  font-weight: 550;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.header-auth-link:hover {
+  color: #000;
+}
+
+.header-auth-signup {
+  background: var(--green);
+  border: 1px solid var(--green);
+  border-radius: 9px;
+  color: #07140b;
+  padding: 10px 15px;
+}
+
+.header-auth-signup:hover {
+  background: var(--green-hover);
+}
+
+.header-user-control {
+  justify-self: end;
+  position: relative;
+}
+
+.header-avatar {
+  align-items: center;
+  background: #f4f7f5;
+  border: 1px solid #dfe5e1;
+  border-radius: 50%;
+  color: #18201a;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  height: 40px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  width: 40px;
+}
+
+.header-avatar img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.header-user-menu {
+  background: #fff;
+  border: 1px solid #e4e9e5;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(15, 25, 18, .10);
+  min-width: 230px;
+  padding: 15px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+}
+
+.header-user-menu[hidden] {
+  display: none !important;
+}
+
+.user-menu-name {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.user-menu-email {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 14px;
+  overflow-wrap: anywhere;
+}
+
+.user-menu-signout {
+  background: #fff;
+  border: 1px solid #dfe5e1;
+  border-radius: 8px;
+  color: #222723;
+  cursor: pointer;
+  min-height: 38px;
+  width: 100%;
+}
+
+.user-menu-signout:hover {
+  background: #f7f9f7;
+}
+
+@media (max-width: 900px) and (min-width: 681px) {
+  .site-header {
+    column-gap: 18px;
+    grid-template-columns: minmax(96px, 1fr) auto auto;
+  }
+
+  .site-header .site-nav {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 18px;
+  }
+
+  .site-header .header-auth-actions,
+  .site-header .header-user-control {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 680px) {
+  .site-header .header-auth-actions,
+  .site-header .header-user-control {
+    position: absolute;
+    right: 74px;
+    top: 19px;
+    z-index: 6;
+  }
+
+  .site-header .header-auth-actions {
+    gap: 9px;
+  }
+
+  .site-header .header-auth-link {
+    font-size: 12px;
+  }
+
+  .site-header .header-auth-signup {
+    padding: 8px 10px;
+  }
+
+  .clerk-auth-wrap {
+    width: min(100%, 440px);
+  }
+}

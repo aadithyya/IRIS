@@ -1,0 +1,33 @@
+name: Validate IRIS
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/clerk-vanilla-js-auth
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check internal/web/static/js/clerk-auth.js
+          node --check internal/web/static/js/site.js
+          node --check internal/web/static/js/globe.js

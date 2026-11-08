@@ -52,6 +52,36 @@ IRIS is a reliable, high-performance web-based lossless file compressor powered 
 
 ---
 
+## Clerk authentication
+
+IRIS uses Clerk's browser-based JavaScript SDK for its sign-in and sign-up pages. React and a Node.js server are not required.
+
+### Configure the existing Clerk application
+
+The Go server reads only `CLERK_PUBLISHABLE_KEY` and exposes it through `GET /api/clerk-config`. This is a frontend publishable key (`pk_test_...` or `pk_live_...`), not a secret key.
+
+1. In the Clerk Dashboard, open the existing IRIS application and copy its **Publishable Key**.
+2. Set it in the same terminal session used to run IRIS:
+   ```bash
+   export CLERK_PUBLISHABLE_KEY="pk_test_YOUR_PUBLISHABLE_KEY"
+   go run ./cmd/iris
+   ```
+   Replace the example value with the real publishable key. Do not paste keys into GitHub issues, source code, or chat.
+3. Visit `http://localhost:8080/login.html` or `http://localhost:8080/signup.html`.
+
+If you need to link the Clerk CLI to the existing dashboard application, authenticate first, then use the selected application ID:
+
+```bash
+npx -y clerk@latest auth login
+npx -y clerk@latest link --app app_3LETPkHj6vOkD2BvEfHQC0z9ZC4
+```
+
+Only run the link command if this checkout isn't already linked to that application. Do not run `clerk init` for this existing Go project because the Clerk UI is already integrated and the goal is to preserve the current application. If development keys are missing, restore them from the same application through the Clerk CLI or copy the publishable key from its Dashboard. A key written to an env file is not automatically loaded by Go; the process still needs `CLERK_PUBLISHABLE_KEY` in its environment.
+
+### Current authentication boundary
+
+Clerk manages sign-in, sign-up, and browser sessions. The Go `POST /compress` endpoint is **not yet protected by server-side session-token verification**, so adding a Clerk account does not currently make compression an authenticated-only feature. Do not treat the UI alone as an access-control boundary.
+
 ## Architecture
 
 ```
